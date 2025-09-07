@@ -31,7 +31,7 @@ pipeline {
                     .\\.venv\\Scripts\\activate
                     echo PROMETHEUS_URL=%PROMETHEUS_URL%
                     dir %DEPLOYMENTS_EXCEL%
-                    python run.py "%DEPLOYMENTS_EXCEL%"
+                    python3 run.py "%DEPLOYMENTS_EXCEL%"
                     """
                 }
             }
