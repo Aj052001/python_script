@@ -15,11 +15,11 @@ pipeline {
 
         stage('Prepare Python') {
             steps {
-                // Windows CMD style
+                // Windows CMD style with full Python path
                 bat '''
-                python -m venv .venv || exit 0
+                C:\\Python311\\python.exe -m venv .venv || exit 0
                 call .\\.venv\\Scripts\\activate
-                pip install -r requirements.txt || exit 0
+                .\\.venv\\Scripts\\pip.exe install -r requirements.txt || exit 0
                 '''
             }
         }
@@ -34,7 +34,7 @@ pipeline {
                     call .\\.venv\\Scripts\\activate
                     echo PROMETHEUS_URL=%PROMETHEUS_URL%
                     echo DEPLOYMENTS_FILE=%DEPLOYMENTS_FILE%
-                    python run.py "%DEPLOYMENTS_FILE%"
+                    C:\\Python311\\python.exe run.py "%DEPLOYMENTS_FILE%"
                     """
                 }
             }
