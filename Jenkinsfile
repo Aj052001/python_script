@@ -38,7 +38,7 @@ pipeline {
             sh '''
               . .venv/bin/activate
               echo "Using PROMETHEUS_URL=$PROMETHEUS_URL"
-              python3 pod_stats.py "$DEPLOYMENTS_EXCEL"
+              python3 run.py "$DEPLOYMENTS_EXCEL"
             '''
           }
         }
