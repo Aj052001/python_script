@@ -18,7 +18,7 @@ pipeline {
                 // Windows CMD style
                 bat '''
                 python -m venv .venv || exit 0
-                .\\.venv\\Scripts\\activate
+                call .\\.venv\\Scripts\\activate
                 pip install -r requirements.txt || exit 0
                 '''
             }
@@ -26,12 +26,15 @@ pipeline {
 
         stage('Run pod stats') {
             steps {
-                withEnv(["PROMETHEUS_URL=${params.PROMETHEUS_URL}"]) {
+                withEnv([
+                    "PROMETHEUS_URL=${params.PROMETHEUS_URL}",
+                    "DEPLOYMENTS_FILE=${params.DEPLOYMENTS_EXCEL}"
+                ]) {
                     bat """
-                    .\\.venv\\Scripts\\activate
+                    call .\\.venv\\Scripts\\activate
                     echo PROMETHEUS_URL=%PROMETHEUS_URL%
-                    dir %DEPLOYMENTS_EXCEL%
-                    python3 run.py "%DEPLOYMENTS_EXCEL%"
+                    echo DEPLOYMENTS_FILE=%DEPLOYMENTS_FILE%
+                    python run.py "%DEPLOYMENTS_FILE%"
                     """
                 }
             }
