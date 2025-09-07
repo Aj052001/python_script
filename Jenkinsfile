@@ -1,30 +1,55 @@
 pipeline {
-    agent any
+  agent any
 
-    parameters {
-        file(name: 'INPUT_FILE', description: 'Upload your Excel file')
-        string(name: 'OUTPUT_FILE', defaultValue: 'output_cleaned.xlsx', description: 'Path to save cleaned Excel file')
+  parameters {
+    string(name: 'PROMETHEUS_URL', defaultValue: 'http://localhost:9090', description: 'Prometheus URL')
+    base64File(name: 'DEPLOYMENTS_EXCEL', description: 'Upload deployments xlsx (e.g. deployments.xlsx)')
+    string(name: 'NAMESPACE', defaultValue: 'default', description: 'K8s namespace (optional)')
+    string(name: 'STEP', defaultValue: '60s', description: 'Prometheus step (optional)')
+  }
+
+  stages {
+    stage('Checkout') {
+      steps {
+        // if this Jenkinsfile is in the repo and job is Pipeline from SCM / Multibranch,
+        // checkout scm will pull the code automatically
+        checkout scm
+      }
     }
 
-    stages {
-        stage('Setup Python Env') {
-            steps {
-                sh 'python3 -m venv venv'
-                sh '. venv/bin/activate && pip install -r requirements.txt'
-            }
-        }
-
-        stage('Run Script') {
-            steps {
-                sh ". venv/bin/activate && python run.py ${params.INPUT_FILE} ${params.OUTPUT_FILE}"
-            }
-        }
+    stage('Prepare Python') {
+      steps {
+        sh '''
+          python3 -m venv .venv || true
+          . .venv/bin/activate
+          pip install -r requirements.txt || true
+        '''
+      }
     }
 
-    post {
-        success {
-            archiveArtifacts artifacts: "${params.OUTPUT_FILE}", fingerprint: true
-            echo "✅ Cleaned Excel uploaded as Jenkins artifact."
+    stage('Run pod stats') {
+      steps {
+        // withFileParameter binds the uploaded file to an env var with path to temp file
+        withFileParameter(name: 'DEPLOYMENTS_EXCEL', allowNoFile: false) {
+          // pass params as env vars so your script (that reads os.getenv) can use them
+          withEnv(["PROMETHEUS_URL=${params.PROMETHEUS_URL}",
+                   "NAMESPACE=${params.NAMESPACE}",
+                   "STEP=${params.STEP}"]) {
+            sh '''
+              . .venv/bin/activate
+              echo "Using PROMETHEUS_URL=$PROMETHEUS_URL"
+              python3 pod_stats.py "$DEPLOYMENTS_EXCEL"
+            '''
+          }
         }
+      }
     }
+  }
+
+  post {
+    always {
+      // archive the generated xlsx so you can download it from Jenkins UI
+      archiveArtifacts artifacts: 'pod_summary_with_memory.xlsx', allowEmptyArchive: true
+    }
+  }
 }
