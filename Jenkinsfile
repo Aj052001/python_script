@@ -15,11 +15,19 @@ pipeline {
 
         stage('Prepare Python') {
             steps {
-                // Windows CMD style with full Python path
                 bat '''
-                C:\\Python311\\python.exe -m venv .venv || exit 0
+                python -m venv .venv || exit 0
                 call .\\.venv\\Scripts\\activate
-                .\\.venv\\Scripts\\pip.exe install -r requirements.txt || exit 0
+                pip install -r requirements.txt || exit 0
+                '''
+            }
+        }
+
+        stage('Prepare Excel File') {
+            steps {
+                bat '''
+                echo Copying uploaded Excel file...
+                copy "%DEPLOYMENTS_EXCEL%" "%WORKSPACE%\\deployments.xlsx"
                 '''
             }
         }
@@ -28,13 +36,13 @@ pipeline {
             steps {
                 withEnv([
                     "PROMETHEUS_URL=${params.PROMETHEUS_URL}",
-                    "DEPLOYMENTS_FILE=${params.DEPLOYMENTS_EXCEL}"
+                    "DEPLOYMENTS_FILE=%WORKSPACE%\\deployments.xlsx"
                 ]) {
                     bat """
                     call .\\.venv\\Scripts\\activate
                     echo PROMETHEUS_URL=%PROMETHEUS_URL%
                     echo DEPLOYMENTS_FILE=%DEPLOYMENTS_FILE%
-                    C:\\Python311\\python.exe run.py "%DEPLOYMENTS_FILE%"
+                    python run.py "%DEPLOYMENTS_FILE%"
                     """
                 }
             }
